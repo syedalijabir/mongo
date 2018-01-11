@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 #
 # Owner: Ali Jabir
 # Email: syedalijabir@gmail.com
