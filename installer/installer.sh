@@ -24,7 +24,6 @@ INFO='\033[0;33m'
 NORM='\033[0m'
 
 supported_ver=(16.04)
-version="3.2"
 
 # Figure out directories
 working_dir="$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)"
@@ -68,6 +67,8 @@ function usage () {
 usage: $(basename $0) [options] [parameter]
 
 Options:
+  -u, --user            Username for root user. Default admin
+  -p, --pass            Password for root user. Default admin
   -v, --version         MongoDB version to be installed. Default 3.2
   -h, --help            Display help menu
 DELIM__
@@ -87,7 +88,7 @@ else
 fi
 
 # read the options
-TEMP=$(getopt -o v:h --long version:,help -n 'installer.sh' -- "$@")
+TEMP=$(getopt -o u:p:v:h --long user:,pass:,version:,help -n 'installer.sh' -- "$@")
 if [[ $? -ne 0 ]]; then
   usage
   exit 1
@@ -97,6 +98,8 @@ eval set -- "$TEMP"
 # extract options
 while true ; do
   case "$1" in
+    -u|--user) user=$2 ; shift 2 ;;
+    -p|--pass) passwd=$2 ; shift 2 ;;
     -v|--version) version=$2 ; shift 2 ;;
     -h|--help) usage ; exit 1 ;;
     --) shift ; break ;;
@@ -104,11 +107,15 @@ while true ; do
   esac
 done
 
+user=${user:-"admin"}
+passwd=${passwd:-"admin"}
+version=${version:-"3.2"}
+
 # Import public key
 tryexec sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv EA312927
 log "${GREEN}Public key added successfully.${NORM}"
 # Create source list
-tryexec echo "deb http://repo.mongodb.org/apt/ubuntu "$(lsb_release -sc)"/mongodb-org/${version} multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.2.list
+tryexec echo "deb http://repo.mongodb.org/apt/ubuntu "$(lsb_release -sc)"/mongodb-org/${version} multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-${version}.list
 # Update sources
 tryexec sudo apt-get update
 log "${GREEN}apt-update successful.${NORM}"
@@ -116,10 +123,23 @@ log "${GREEN}apt-update successful.${NORM}"
 # Install mongoDB
 dpkg -l mongodb-org &> /dev/null
 if [[ $? -eq 0 ]]; then
-  log "${INOF}MongoDB already installed.${NORM}"
+  log "${INFO}MongoDB already installed.${NORM}"
 else
   tryexec sudo apt-get install -y mongodb-org
   log "${GREEN}MongoDB installed successfully.${NORM}"
 fi
+
+# Create mongod service
+if [[ ! -f /lib/systemd/system/mongod.service ]]; then
+  tryexec sudo cp ${working_dir}/mongod.service /lib/systemd/system/mongod.service
+  tryexec sudo systemctl daemon-reload
+  tryexec sudo systemctl start mongod
+  tryexec sudo systemctl enable mongod
+else
+  tryexec sudo systemctl restart mongod
+fi
+status=$(netstat -tulpn | grep mongod)
+log "${INFO}MongoDB service is up${NORM}"
+log ${status}
 
 exit 0
