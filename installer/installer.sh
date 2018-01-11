@@ -67,8 +67,6 @@ function usage () {
 usage: $(basename $0) [options] [parameter]
 
 Options:
-  -u, --user            Username for root user. Default admin
-  -p, --pass            Password for root user. Default admin
   -v, --version         MongoDB version to be installed. Default 3.2
   -h, --help            Display help menu
 DELIM__
@@ -88,7 +86,7 @@ else
 fi
 
 # read the options
-TEMP=$(getopt -o u:p:v:h --long user:,pass:,version:,help -n 'installer.sh' -- "$@")
+TEMP=$(getopt -o v:h --long version:,help -n 'installer.sh' -- "$@")
 if [[ $? -ne 0 ]]; then
   usage
   exit 1
@@ -98,8 +96,6 @@ eval set -- "$TEMP"
 # extract options
 while true ; do
   case "$1" in
-    -u|--user) user=$2 ; shift 2 ;;
-    -p|--pass) passwd=$2 ; shift 2 ;;
     -v|--version) version=$2 ; shift 2 ;;
     -h|--help) usage ; exit 1 ;;
     --) shift ; break ;;
